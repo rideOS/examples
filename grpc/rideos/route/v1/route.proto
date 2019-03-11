@@ -1,0 +1,123 @@
+/***********************************************************************************************************************
+ *
+ * Copyright 2018-2019 rideOS, Inc.
+ * rideOS confidential materials
+ *
+***********************************************************************************************************************/
+
+syntax = "proto3";
+
+
+package rideos.route.v1;
+option java_package = "ai.rideos.api.route.v1";
+option java_outer_classname = "RouteProto";
+
+import "rideos/geo/v1/geo.proto";
+import "rideos/timestamp/v1/timestamp.proto";
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// RouteService
+//
+// The RouteServices provides routes
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+service RouteService {
+    rpc GetRoute(RouteRequest) returns (RouteResponse) {
+        option deprecated = true;
+    };
+}
+
+message RouteRequest {
+    option deprecated = true;
+
+    geo.v1.PositionAndHeading origin = 1;
+    geo.v1.PositionAndHeading destination = 2;
+
+    // Time of departure from the origin (optional). If not specified, departure time is assumed to be the time at
+    // which the route request is processed.
+    timestamp.v1.Timestamp departure_time = 3;
+
+    // The route will avoid traversing edges that match any EdgeMatcher in this list
+    repeated EdgeMatcher excluded_edges = 4;
+
+    // Optional but recommended: ID of the vehicle that will make the journey from the origin to the destination. By
+    // providing this, along with real-time vehicle position updates through the Vehicle Position service, rideOS is
+    // able to provide ETA accuracy metrics by comparing predicted travel time with actual travel time.
+    string vehicle_id = 5;
+
+
+
+}
+
+message EdgeMatcher {
+    oneof type {
+        MapFeatureAttributeEdgeMatcher map_feature_attribute_edge_matcher = 1;
+    }
+
+    enum Operator {
+        UNKNOWN = 0;
+        EQUALS = 1;
+    }
+
+    // An XEdgeMatcher that is based on an attribute that's attached to a map feature in the underlying data.
+    // For instance, if edges in the underlying data contain a field called "lane_type" with possible values
+    // ("STRAIGHT", LEFT_TURN", "RIGHT_TURN", and "U_TURN") and we want to match edges that are  U-turns, we could
+    // use the following MapFeatureAttributeEdgeMatcher:
+    // {"key": "lane_type", "operator":"EQUALS", "string": "U_TURN"}
+    message MapFeatureAttributeEdgeMatcher {
+        string key = 1;
+
+        Operator operator = 2;
+
+        oneof value {
+            string string = 3;
+            double double = 4;
+        }
+    }
+}
+
+message RouteResponse {
+    option deprecated = true;
+
+    // Time of departure from the origin. Will be equal to the request's departure_time if that was set. If not, this
+    // will be equal to the assumed time of departure based on when the request was processed.
+    timestamp.v1.Timestamp departure_time = 1;
+
+    // Path from the origin to the destination. Will be missing if no route was found
+    Path path = 2;
+
+    message Path {
+        // Geometry for the path
+        repeated rideos.geo.v1.Position geometry = 1;
+
+        // Google-encoded polyline representing the geometry
+        // For details, see https://developers.google.com/maps/documentation/utilities/polylinealgorithm
+        string polyline = 2;
+
+        // Expected length of time required to traverse the path
+        timestamp.v1.Duration travel_time = 3;
+
+        // In cases where it is impossible to provide a route without violating any of the excluded_edges in the
+        // request, we will still provide a least-cost route, but this array will contain a list of the XEdgeMatcher
+        // instances that matched any edge in the returned route
+        repeated EdgeMatcher violated_edge_exclusions = 4;
+
+        // Total distance in meters of the Path
+        double distance_meters = 5;
+    }
+
+    // The status of the response (SUCCESS, ROUTE_NOT_FOUND, etc.)
+    Status status = 3;
+
+    enum Status {
+        UNKNOWN = 0;
+
+        // The request was successful
+        SUCCESS = 1;
+
+        // The request failed because no route was found between the requested points
+        ROUTE_NOT_FOUND = 2;
+    }
+}

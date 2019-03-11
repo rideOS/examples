@@ -1,0 +1,165 @@
+/***********************************************************************************************************************
+ *
+ * Copyright 2018-2019 rideOS, Inc.
+ * rideOS confidential materials
+ *
+***********************************************************************************************************************/
+
+syntax = "proto3";
+
+package rideos.fleet.v2;
+option java_package = "ai.rideos.api.fleet.v2";
+option java_outer_classname = "PlanProto";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+import "rideos/geo/v1/geo.proto";
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// FleetPlanService
+//
+// The FleetPlanService provides a way to retrieve recommendations about which Tasks each vehicle in a fleet should
+// service, and in what order it should service them.
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+service FleetPlanService {
+    // Performs a re-optimization of the Plans for relevant vehicles, returning a set of recommended updated Plans.
+    rpc GetPlan (GetPlanRequest) returns (GetPlanResponse);
+}
+
+message GetPlanRequest {
+    // Vehicles for which to provide plan recommendations. Map from vehicle ID to Vehicle
+    map<string, Vehicle> vehicles = 1;
+
+    // Tasks that the vehicles should service. Should include both tasks that are reflected in the current
+    // vehicle plans, as well as new tasks that need to be incorporated into vehicle plans.  Map from task ID to Task
+    map<string, Task> tasks = 4;
+
+    // If true, the inital plan may have tasks reassigned to new vehicles when doing so provides a better solution
+    bool allow_vehicle_reassignment = 5;
+
+    OptimizationProfile optimize_for = 6;
+}
+
+message GetPlanResponse {
+    // Recommended plan for each vehicle
+    repeated VehiclePlanRecommendation recommendations = 1;
+    // Tasks that could not be solved for
+    repeated UnresolvedTask unresolved_tasks = 2;
+}
+
+message UnresolvedTask {
+    string task_id = 1;
+}
+
+message Vehicle {
+    // The vehicle's position.
+    rideos.geo.v1.Position position = 1;
+
+    // The vehicle's heading.
+    // Measured clockwise from true North - i.e. 0 is true North, 90 is East, 180 is South, 270 is West, etc..
+    google.protobuf.FloatValue heading = 2;
+
+    // The total resource capacity in the vehicle. ex: if the vehicles are transporting passengers, this might be
+    // the number of seats in the vehicle. Each Task should indicate the number of resources required - i.e. the number
+    // of resources that are consumed when the vehicle completes the Task's pickup step and released when the vehicle
+    // completes the Task's dropoff step.
+    google.protobuf.UInt32Value resource_capacity = 3;
+
+    // The vehicle's current plan.
+    VehiclePlan current_plan = 4;
+
+    string vehicle_id = 5;
+}
+
+message VehiclePlanRecommendation {
+    // The ID of the vehicle for whom this recommendation applies
+    string vehicle_id = 1;
+
+    // The plan recommendation for the vehicle
+    VehiclePlan plan_recommendation = 2;
+}
+
+message VehiclePlan {
+    // The steps to be completed, in order
+    repeated AssignedStep assigned_steps = 1;
+}
+
+message AssignedStep {
+    // ID of the corresponding Task
+    string task_id = 1;
+
+    // Whether this AssignedStep corresponds to the pickup or dropoff step
+    StepType step_type = 2;
+
+    double remaining_time = 3;
+
+    enum StepType {
+        UNKNOWN = 0;
+        PICKUP = 1;
+        DROPOFF = 2;
+    }
+}
+
+message Task {
+    // The number of resources (ex: seats for passengers) that are consumed when the pickup step is completed and
+    // released when the dropoff step is completed.
+    google.protobuf.UInt32Value resources_required = 1;
+
+    // The pickup step. Will always occur before the dropoff step.
+    PickupStep pickup_step = 2;
+
+    // The dropoff step. Will always occur after the pickup step.
+    DropoffStep dropoff_step = 3;
+
+    message PickupStep {
+        // The desired position at which the Step should occur.
+        rideos.geo.v1.Position position = 1;
+
+        // Optional: The heading of the street at the Step position. Used to disambiguate side-of-street.
+        // Measured clockwise from true North - i.e. 0 is true North, 90 is East, 180 is South, 270 is West, etc..
+        google.protobuf.FloatValue heading = 2;
+
+        // If the PickupStep has been completed, this should equal the ID of the vehicle that completed the step.
+        // If the PickupStep has not been completed, this should be omitted/empty.
+        string completed_by_vehicle_id = 3;
+
+        // Desired time window within which this step should occur. Treated as a "soft constraint" - i.e. the actual
+        // service time may occur outside of this time window
+        TimeWindow desired_service_time = 4;
+
+
+        // If the pickup has not been completed yet, we will assign this task to the desired vehicle id. This is ignored
+        // if the pickup has been completed.
+        string desired_vehicle_id = 6;
+    }
+
+    message DropoffStep {
+        // The desired position at which the Step should occur.
+        rideos.geo.v1.Position position = 1;
+
+        // Optional: The heading of the street at the Step position. Used to disambiguate side-of-street.
+        // Measured clockwise from true North - i.e. 0 is true North, 90 is East, 180 is South, 270 is West, etc..
+        google.protobuf.FloatValue heading = 2;
+
+        // Desired time window within which this step should occur. Treated as a "soft constraint" - i.e. the actual
+        // service time may occur outside of this time window
+        TimeWindow desired_service_time = 3;
+
+    }
+}
+
+message TimeWindow {
+    google.protobuf.Timestamp start = 1;
+    google.protobuf.Timestamp end = 2;
+}
+
+// An optimization profile is used in planner to determine the type of costing we use in the optimization.
+enum OptimizationProfile {
+    RIDE_HAIL = 0;
+    GOODS = 1;
+}

@@ -1,0 +1,119 @@
+/***********************************************************************************************************************
+ *
+ * Copyright 2018-2019 rideOS, Inc.
+ * rideOS confidential materials
+ *
+***********************************************************************************************************************/
+
+syntax = "proto3";
+
+package rideos.dispatch.v2;
+option java_package = "ai.rideos.api.dispatch.v2";
+option objc_class_prefix = "Dispatch";
+
+import "rideos/dispatch/v2/common.proto";
+
+message JoinFleetRequest {
+    string vehicle_id = 1;
+    string fleet_id = 2;
+    bool ready_for_dispatch = 3;
+}
+
+message JoinFleetResponse {
+}
+
+message GetPlanForVehicleRequest {
+    string vehicle_id = 1;
+}
+
+message GetPlanForVehicleResponse {
+    Plan plan = 1;
+}
+
+message CompleteStepRequest {
+    string vehicle_id = 1;
+    string task_id = 2;
+    string step_id = 3;
+
+    // Optional. If non-zero, time that the step was completed
+    int64 completion_time_epoch_ms = 4;
+}
+
+message CompleteStepResponse {
+}
+
+message SetReadinessRequest {
+    enum NotReadyForDispatchTaskAction {
+        DEFAULT = 0;
+
+        // Cancel all assigned tasks
+        CANCEL_ALL = 1;
+
+        // Unassign any tasks that can be unassigned. Cancel all other tasks.
+        UNASSIGN_OR_CANCEL_ALL = 2;
+
+        // will complete its current ones?)
+    }
+
+    string vehicle_id = 1;
+    bool ready_for_dispatch = 2;
+
+    // Optional. What to do with all assigned tasks when the vehicle transitions to not ready. Ignored if
+    // "ready_for_dispatch" is true.
+    NotReadyForDispatchTaskAction not_ready_action = 3;
+}
+
+message SetReadinessResponse {
+}
+
+message MarkVehicleStaleRequest {
+    string vehicle_id = 1;
+}
+
+message MarkVehicleStaleResponse {
+}
+
+message VehicleCancelTaskRequest {
+    string vehicle_id = 1  [deprecated=true];  // this is unused
+    string task_id = 2;
+    CancelReason cancel_reason = 3;
+}
+
+message VehicleCancelTaskResponse {
+}
+
+message GetVehicleInfoRequest {
+    string vehicle_id = 1;
+}
+
+message GetVehicleInfoResponse {
+    VehicleInfo vehicle_info = 1;
+}
+
+message SetVehicleInfoRequest {
+    VehicleInfo vehicle_info = 1;
+}
+
+message SetVehicleInfoResponse {
+}
+
+service DispatchVehicleService {
+    // The vehicle need only call one of these RPCs to become ready. SetReadiness with ready_for_dispatch = true will
+    // use the previously joined fleet (if any). JoinFleet will change the fleet the vehicle is associated with
+    // (vehicles can only be in one fleet at a time).
+    rpc JoinFleet (JoinFleetRequest) returns (JoinFleetResponse);
+    rpc SetReadiness (SetReadinessRequest) returns (SetReadinessResponse);
+
+    // This RPC immediately marks a vehicle as stale, and should be called immediately before a vehicle powers off. The
+    // vehicle must have an empty Plan.
+    rpc MarkVehicleStale (MarkVehicleStaleRequest) returns (MarkVehicleStaleResponse);
+
+    // Complete a step in the plan
+    rpc CompleteStep (CompleteStepRequest) returns (CompleteStepResponse);
+    rpc CancelTask (VehicleCancelTaskRequest) returns (VehicleCancelTaskResponse);
+
+    rpc GetVehicleInfo (GetVehicleInfoRequest) returns (GetVehicleInfoResponse);
+    rpc SetVehicleInfo (SetVehicleInfoRequest) returns (SetVehicleInfoResponse);
+
+    rpc GetPlanForVehicle (GetPlanForVehicleRequest) returns (GetPlanForVehicleResponse);
+}

@@ -1,0 +1,175 @@
+/***********************************************************************************************************************
+ *
+ * Copyright 2018-2019 rideOS, Inc.
+ * rideOS confidential materials
+ *
+***********************************************************************************************************************/
+
+syntax = "proto3";
+
+package rideos.path.v2;
+option java_package = "ai.rideos.api.path.v2";
+option java_outer_classname = "PathProto";
+
+import "rideos/geo/v1/geo.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// PathService
+//
+// The PathService provides paths between waypoints.
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+service PathService {
+    rpc GetPath(PathRequest) returns (PathResponse);
+}
+
+message PathRequest {
+    // List of waypoints the path needs to pass through, at least two waypoints are required.
+    repeated Waypoint waypoints = 1;
+
+    // Time of departure from the origin (optional). If not specified, departure time is assumed to be the time at
+    // which the path request is processed.
+    google.protobuf.Timestamp departure_time = 2;
+
+    // Optional: The path will avoid traversing edges that match any EdgeMatcher in this list
+    repeated EdgeMatcher excluded_edges = 3;
+
+    // Optional but recommended: ID of the vehicle that will make the journey from the origin to the destination. By
+    // providing this, along with real-time vehicle position updates through the Vehicle Position service, rideOS is
+    // able to provide ETA accuracy metrics by comparing predicted travel time with actual travel time.
+    string vehicle_id = 4;
+
+    enum GeometryFormat {
+        NONE = 0; // Do not return the geometry
+        LINESTRING = 1; // Return the geometry as LineString object
+        POLYLINE = 2; // Return the geometry as Google-style polyline using 5 decimal places
+    }
+
+    GeometryFormat geometry_format = 5;
+
+    enum CurbApproach {
+        UNSPECIFIED = 0; // We will not consider the driving direction when snapping the waypoints
+        DRIVING_SIDE = 1; // We will snap points according to the driving direction of the country
+    }
+
+    CurbApproach curb_approach = 6;
+
+    string basemap_id = 7;
+
+
+
+}
+
+message PathResponse {
+    // List of waypoints the path passes through.
+    repeated Waypoint waypoints = 1;
+
+    // Time of departure from the first waypoint. Will be equal to the request's departure_time if that was set. If not, this
+    // will be equal to the assumed time of departure based on when the request was processed.
+    google.protobuf.Timestamp departure_time = 2;
+
+    // Paths through the waypoints. Will be empty if no path was found.
+    repeated Path paths = 3;
+}
+
+message Waypoint {
+    // Position of the vehicle at the waypoint
+    geo.v1.Position position = 1;
+    // Optional: Heading of the vehicle at the waypoint
+    google.protobuf.FloatValue heading = 2;
+
+    enum Type {
+        STOP = 0;           // (Default) Path will be split in a new leg at this waypoint
+        PASS_THROUGH = 1;   // Path will be continue as the same leg
+    }
+    // Optional: Define if the path will be split at waypoints or not, default is to split.
+    Type type = 3;
+    // Optional: Planned time it will take to go through this waypoint, default is 0.
+    google.protobuf.Duration service_time = 4;
+}
+
+message EdgeMatcher {
+    oneof type {
+        AttributeMatcher attribute_matcher = 1;
+        ConstraintMatcher constraint_matcher = 2;
+        GlobalConstraintMatcher global_constraint_matcher = 3;
+    }
+
+    enum Operator {
+        UNKNOWN = 0;
+        EQUALS = 1;
+    }
+
+    // An EdgeMatcher that is based on an attribute that's attached to a map feature in the underlying data.
+    // For instance, if edges in the underlying data contain a field called "lane_type" with possible values
+    // ("STRAIGHT", LEFT_TURN", "RIGHT_TURN", and "U_TURN") and we want to match edges that are  U-turns, we could
+    // use the following AttributeMatcher:
+    // {"key": "lane_type", "operator":"EQUALS", "string": "U_TURN"}
+    message AttributeMatcher {
+        string key = 1;
+
+        Operator operator = 2;
+
+        oneof value {
+            string string = 3;
+            double double = 4;
+            bool bool = 5;
+        }
+    }
+
+    // An EdgeMatcher that is based on map rule constraint tags matched on the underlying map features.
+    // For instance, if an avoid area map rule is set with the tag "construction_zone=true", we can route around these
+    // by setting:
+    // {"key": "construction_zone", "operator": "EQUALS", "bool": true}
+    message ConstraintMatcher {
+        string key = 1;
+
+        Operator operator = 2;
+
+        oneof value {
+            double double = 3;
+            bool bool = 4;
+        }
+    }
+
+    // An EdgeMatcher that matches all constraints.
+    message GlobalConstraintMatcher {
+
+    }
+}
+
+message Leg {
+    oneof geometry {
+        // Geometry for the path encoded as line
+        rideos.geo.v1.LineString line_string = 1;
+
+        // Google-encoded polyline representing the geometry
+        // For details, see https://developers.google.com/maps/documentation/utilities/polylinealgorithm
+        string polyline = 2;
+    }
+
+    // Expected length of time required to traverse the leg excluding service times
+    google.protobuf.Duration travel_time = 3;
+
+    // In cases where it is impossible to provide a path without violating any of the excluded_edges in the
+    // request, we will still provide a least-cost path, but this array will contain a list of the XEdgeMatcher
+    // instances that matched any edge in the returned path
+    repeated EdgeMatcher violated_edge_exclusions = 4;
+
+    // Total distance in meters of the Leg
+    double distance = 5;
+}
+
+message Path {
+    // Path split into legs at each stopping waypoint
+    repeated Leg legs = 1;
+    // Expected length of time required to traverse the Path including service times
+    google.protobuf.Duration travel_time = 2;
+    // Total distance in meters of the Path (i.e. the sum of the distances of each Leg)
+    double distance = 3;
+}

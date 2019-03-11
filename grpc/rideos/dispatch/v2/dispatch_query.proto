@@ -1,0 +1,140 @@
+/***********************************************************************************************************************
+ *
+ * Copyright 2018-2019 rideOS, Inc.
+ * rideOS confidential materials
+ *
+***********************************************************************************************************************/
+
+syntax = "proto3";
+
+package rideos.dispatch.v2;
+option java_package = "ai.rideos.api.dispatch.v2";
+option objc_class_prefix = "Dispatch";
+
+import "rideos/dispatch/v2/common.proto";
+import "rideos/dispatch/v2/dispatch_task.proto";
+import "rideos/geo/v1/geo.proto";
+import "rideos/vehicle/v1/position.proto";
+import "rideos/route/v1/route.proto";
+
+message VehicleUIState {
+    VehicleState state = 1;
+    vehicle.v1.GetVehiclesInAreaResponse.VehicleExtendedPosition position = 2;
+    // Stores the ids of the resources currently on board in the vehicle
+    repeated string currently_carried_resource_id = 3;
+}
+
+message VehiclePreview {
+    geo.v1.PositionAndHeading position_and_heading = 1;
+    string preview_id = 2;
+}
+
+message GetActiveVehiclesInAreaRequest {
+    // The area in which to return all the active vehicles
+    geo.v1.Circle area = 1;
+
+    // Maximum number of vehicles to return
+    int32 max_vehicles = 2;
+}
+
+message GetActiveVehiclesInFleetRequest {
+    string fleet_id = 1;
+    // Maximum number of vehicles to return
+    int32 max_vehicles = 2;
+}
+
+message GetActiveVehiclesResponse {
+    repeated VehicleUIState vehicles = 1;
+}
+
+message GetPreviewVehiclesRequest {
+    string fleet_id = 1;
+    geo.v1.Position preview_center = 2;
+}
+
+message GetPreviewVehiclesResponse {
+    repeated VehiclePreview vehicles = 1;
+}
+
+message ActiveTaskInfo {
+    PassengerTaskInfo passenger_task_info = 1;
+    string passenger_id = 2;
+    ContactInfo passenger_contact_info = 3;
+}
+
+message GetFleetsRequest {
+    // We extract partner_id from request metadata
+}
+
+message GetFleetsResponse {
+    repeated string fleet_id = 1;
+}
+
+message GetFleetActiveTasksRequest {
+    string fleet_id = 1;
+}
+
+message GetFleetActiveTasksResponse {
+    repeated ActiveTaskInfo active_task_info = 1;
+}
+
+message GetFleetMetadataRequest {
+    string fleet_id = 1;
+}
+
+message GetFleetMetadataResponse {
+    FleetMetadata fleet_metadata = 1;
+}
+
+message SetFleetMetadataRequest {
+    FleetMetadata fleet_metadata = 1;
+}
+
+message SetFleetMetadataResponse {
+}
+
+message DeleteFleetMetadataRequest {
+    string fleet_id = 1;
+}
+
+message DeleteFleetMetadataResponse {
+}
+
+message GetVehicleRouteRequest {
+    string vehicle_id = 1;
+
+    // If true, the beginning of the route will be trimmed so that the route starts at the vehicle's current position.
+    bool start_route_at_vehicle_position = 2;
+
+    // If false, the route will include the vehicle's route only up to its next stop. If true, the route will continue
+    // past the next stop until the vehicle's final stop.
+    bool include_future_stops = 3;
+}
+
+message GetVehicleRouteResponse {
+    route.v1.RouteResponse route = 1;
+}
+
+message ReoptimizePlansRequest {
+    string fleet_id = 1;
+}
+
+message ReoptimizePlansResponse {}
+
+service DispatchQueryService {
+    // Retrieve all vehicles in an area, across all fleet IDs.
+    rpc GetActiveVehiclesInArea (GetActiveVehiclesInAreaRequest) returns (GetActiveVehiclesResponse);
+    rpc GetActiveVehiclesInFleet (GetActiveVehiclesInFleetRequest) returns (GetActiveVehiclesResponse);
+    rpc GetPreviewVehicles (GetPreviewVehiclesRequest) returns (GetPreviewVehiclesResponse);
+    rpc GetFleets (GetFleetsRequest) returns (GetFleetsResponse);
+    rpc GetFleetActiveTasks (GetFleetActiveTasksRequest) returns (GetFleetActiveTasksResponse);
+
+    rpc GetFleetMetadata (GetFleetMetadataRequest) returns (GetFleetMetadataResponse);
+    rpc SetFleetMetadata (SetFleetMetadataRequest) returns (SetFleetMetadataResponse);
+    rpc DeleteFleetMetadata (DeleteFleetMetadataRequest) returns (DeleteFleetMetadataResponse);
+
+    rpc GetVehicleRoute (GetVehicleRouteRequest) returns (GetVehicleRouteResponse);
+
+    // Reoptimizes all plans in the specified fleet. Call this when, for example, blackout zones change.
+    rpc ReoptimizePlans (ReoptimizePlansRequest) returns (ReoptimizePlansResponse);
+}

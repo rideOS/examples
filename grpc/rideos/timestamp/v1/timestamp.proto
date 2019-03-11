@@ -1,0 +1,37 @@
+/***********************************************************************************************************************
+ *
+ * Copyright 2018-2019 rideOS, Inc.
+ * rideOS confidential materials
+ *
+***********************************************************************************************************************/
+
+syntax = "proto3";
+
+package rideos.timestamp.v1;
+option java_package = "ai.rideos.api.timestamp.v1";
+option java_outer_classname = "TimestampProto";
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Timestamp
+//
+// Protobuf messages for commonly-used time-related primitives
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// An absolute point in time, referenced to the Unix epoch
+message Timestamp {
+    // Number of milliseconds since the Unix epoch (00:00:00 UTC on 1 January 1970)
+    int64 epoch_time_milliseconds = 1;
+}
+
+// A duration of time - i.e. the difference between 2 timestamps
+message Duration {
+    int64 milliseconds = 1;
+}
+
+// A window of time
+message TimeWindow {
+    Timestamp start = 1;
+    Timestamp end = 2;
+}
