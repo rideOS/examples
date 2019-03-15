@@ -12,30 +12,49 @@ option java_package = "ai.rideos.api.dispatch.v2";
 option objc_class_prefix = "Dispatch";
 
 import "rideos/dispatch/v2/common.proto";
+import "rideos/geo/v1/geo.proto";
+import "rideos/timestamp/v1/timestamp.proto";
+
 
 message JoinFleetRequest {
+    // The unique vehicle ID.
     string vehicle_id = 1;
+
+    // The unique fleet ID.
     string fleet_id = 2;
+
+    // Whether or not the vehicle is ready for task assignments.
+    // See https://github.com/rideOS/examples/blob/master/grpc/docs/dispatch/v2/data_model_guide.md#ready-for-dispatch
+    // for details
     bool ready_for_dispatch = 3;
+    SetReadinessRequest.NotReadyForDispatchTaskAction not_ready_action = 4;
 }
 
 message JoinFleetResponse {
 }
 
 message GetPlanForVehicleRequest {
+    // The unique vehicle ID.
     string vehicle_id = 1;
 }
 
 message GetPlanForVehicleResponse {
+    // The current plan for the vehicle.
     Plan plan = 1;
 }
 
 message CompleteStepRequest {
+    // The unique vehicle ID.
     string vehicle_id = 1;
+
+    // The task ID.
     string task_id = 2;
+
+    // The step in the task ID being completing.
     string step_id = 3;
 
-    // Optional. If non-zero, time that the step was completed
+    // Optional. If non-zero, time that the step was completed. If not supplied, this defaults to the time the request
+    // was received.
     int64 completion_time_epoch_ms = 4;
 }
 
@@ -52,14 +71,20 @@ message SetReadinessRequest {
         // Unassign any tasks that can be unassigned. Cancel all other tasks.
         UNASSIGN_OR_CANCEL_ALL = 2;
 
-        // will complete its current ones?)
+        // Unassign any tasks that can be unassigned. Keep all other tasks.
+        UNASSIGN_OR_KEEP = 3;
     }
 
+    // The unique vehicle ID.
     string vehicle_id = 1;
+
+    // Whether or not the vehicle is ready for task assignments.
+    // See https://github.com/rideOS/examples/blob/master/grpc/docs/dispatch/v2/data_model_guide.md#ready-for-dispatch
+    // for details
     bool ready_for_dispatch = 2;
 
-    // Optional. What to do with all assigned tasks when the vehicle transitions to not ready. Ignored if
-    // "ready_for_dispatch" is true.
+    // Optional: This field indicates what to do with all assigned tasks when the vehicle transitions to not ready for
+    // dispatch. This action is applied only if "ready_for_dispatch" is false.
     NotReadyForDispatchTaskAction not_ready_action = 3;
 }
 
@@ -67,6 +92,7 @@ message SetReadinessResponse {
 }
 
 message MarkVehicleStaleRequest {
+    // The unique vehicle ID.
     string vehicle_id = 1;
 }
 
@@ -74,8 +100,12 @@ message MarkVehicleStaleResponse {
 }
 
 message VehicleCancelTaskRequest {
-    string vehicle_id = 1  [deprecated=true];  // this is unused
+    string vehicle_id = 1 [deprecated = true]; // this is unused
+
+    // The task ID to cancel.
     string task_id = 2;
+
+    // A reason for cancellation.
     CancelReason cancel_reason = 3;
 }
 
@@ -83,37 +113,67 @@ message VehicleCancelTaskResponse {
 }
 
 message GetVehicleInfoRequest {
+    // The unique vehicle ID.
     string vehicle_id = 1;
 }
 
 message GetVehicleInfoResponse {
+    // The vehicle's information.
     VehicleInfo vehicle_info = 1;
 }
 
 message SetVehicleInfoRequest {
+    // The vehicle's information.
     VehicleInfo vehicle_info = 1;
 }
 
 message SetVehicleInfoResponse {
 }
 
+message SetVehiclePositionRequest {
+    // The ID of the vehicle. Should be unique in the customer's fleet.
+    string vehicle_id = 1;
+
+    // The position and heading of the vehicle.
+    geo.v1.PositionAndHeading positionAndHeading = 2;
+}
+
+message SetVehiclePositionResponse {
+}
+
 service DispatchVehicleService {
     // The vehicle need only call one of these RPCs to become ready. SetReadiness with ready_for_dispatch = true will
     // use the previously joined fleet (if any). JoinFleet will change the fleet the vehicle is associated with
     // (vehicles can only be in one fleet at a time).
+
+    // JoinFleet is used to add a vehicle to a fleet and set its readiness state.
     rpc JoinFleet (JoinFleetRequest) returns (JoinFleetResponse);
+
+    // SetReadiness is used to set the readiness of a vehicle (either to begin receiving task assignments or stop
+    // receiving them).
     rpc SetReadiness (SetReadinessRequest) returns (SetReadinessResponse);
 
-    // This RPC immediately marks a vehicle as stale, and should be called immediately before a vehicle powers off. The
-    // vehicle must have an empty Plan.
+    // MarkVehicleStale immediately marks a vehicle as stale, and should be called immediately before a vehicle powers
+    // off. The vehicle must have an empty Plan.
     rpc MarkVehicleStale (MarkVehicleStaleRequest) returns (MarkVehicleStaleResponse);
 
-    // Complete a step in the plan
+    // CompleteStep is used to mark the completion of a step in the plan. For example, when the vehicle has arrived and
+    // picked up the passenger, this call is used to complete the driving to pickup step.
     rpc CompleteStep (CompleteStepRequest) returns (CompleteStepResponse);
+
+    // CancelTask is used to cancel an existing task.
     rpc CancelTask (VehicleCancelTaskRequest) returns (VehicleCancelTaskResponse);
 
+    // GetVehicleInfo is used to obtain information about a vehicle specified by ID.
     rpc GetVehicleInfo (GetVehicleInfoRequest) returns (GetVehicleInfoResponse);
+    // SetVehicleInfo is used to set information about a vehicle specified by ID.
     rpc SetVehicleInfo (SetVehicleInfoRequest) returns (SetVehicleInfoResponse);
 
+    // A GetPlanForVehicleRequest is used to obtain the current plan for a given vehicle by ID. The vehicle is expected
+    // to call this periodically to obtain updates to its plan.
     rpc GetPlanForVehicle (GetPlanForVehicleRequest) returns (GetPlanForVehicleResponse);
+
+    // A SetVehiclePosition request is used to set the position of a vehicle. The vehicle is expected to call this with
+    // its updated position periodically.
+    rpc SetVehiclePosition (SetVehiclePositionRequest) returns (SetVehiclePositionResponse);
 }

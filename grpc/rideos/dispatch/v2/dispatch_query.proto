@@ -20,12 +20,18 @@ import "rideos/route/v1/route.proto";
 message VehicleUIState {
     VehicleState state = 1;
     vehicle.v1.GetVehiclesInAreaResponse.VehicleExtendedPosition position = 2;
-    // Stores the ids of the resources currently on board in the vehicle
+
+    // The IDs of the resources (e.g. passengers) currently carried by the vehicle.
     repeated string currently_carried_resource_id = 3;
 }
 
 message VehiclePreview {
     geo.v1.PositionAndHeading position_and_heading = 1;
+
+    // ID of the preview vehicle.
+    //
+    // Use this only for animation purposes (to animate a vehicle moving over time). Does not necessarily correspond
+    // to the vehicle ID of a real vehicle.
     string preview_id = 2;
 }
 
@@ -39,6 +45,7 @@ message GetActiveVehiclesInAreaRequest {
 
 message GetActiveVehiclesInFleetRequest {
     string fleet_id = 1;
+
     // Maximum number of vehicles to return
     int32 max_vehicles = 2;
 }
@@ -49,6 +56,11 @@ message GetActiveVehiclesResponse {
 
 message GetPreviewVehiclesRequest {
     string fleet_id = 1;
+
+    // The center of the geographical area where the preview vehicles will be displayed.
+    //
+    // Typically, preview vehicles will be displayed on a map view, in which case this field should be set to the
+    // center coordinate of the map view.
     geo.v1.Position preview_center = 2;
 }
 
@@ -63,7 +75,6 @@ message ActiveTaskInfo {
 }
 
 message GetFleetsRequest {
-    // We extract partner_id from request metadata
 }
 
 message GetFleetsResponse {
@@ -122,19 +133,55 @@ message ReoptimizePlansRequest {
 message ReoptimizePlansResponse {}
 
 service DispatchQueryService {
-    // Retrieve all vehicles in an area, across all fleet IDs.
+    // Retrieve all "active" vehicles in an area, across all fleet IDs.
+    //
+    // The response is not filtered by fleet ID. The information returned about each vehicle includes its
+    // full plan, currently assigned tasks, passengers currently in the vehicle, and so on. If this level of detail is
+    // not needed or not desired (e.g. for displaying preview vehicles on a map to passengers), see the
+    // GetPreviewVehicles method for an alternative.
     rpc GetActiveVehiclesInArea (GetActiveVehiclesInAreaRequest) returns (GetActiveVehiclesResponse);
+
+    // Get info on all "active" vehicles in a given fleet ID.
+    //
+    // The response is not filtered by geographical location. The information returned about each vehicle includes its
+    // full plan, currently assigned tasks, passengers currently in the vehicle, and so on. If this level of detail is
+    // not needed or not desired (e.g. for displaying preview vehicles on a map to passengers), see the
+    // GetPreviewVehicles method for an alternative.
     rpc GetActiveVehiclesInFleet (GetActiveVehiclesInFleetRequest) returns (GetActiveVehiclesResponse);
+
+    // Preview the available vehicles in a given area and fleet ID.
+    //
+    // This RPC can be directly called from a mobile app. Call this RPC (rather than GetActiveVehiclesIn*) if the
+    // vehicles will be displayed to an end-user.
     rpc GetPreviewVehicles (GetPreviewVehiclesRequest) returns (GetPreviewVehiclesResponse);
+
+    // Get all the known fleet IDs.
+    //
+    // See the documentation on "Fleets" for more information:
+    // https://github.com/rideOS/examples/blob/master/grpc/docs/dispatch/v2/data_model_guide.md#fleets
     rpc GetFleets (GetFleetsRequest) returns (GetFleetsResponse);
+
+    // Get all "active" tasks in a fleet.
+    //
+    // See the documentation on "Tasks" for more information:
+    // https://github.com/rideOS/examples/blob/master/grpc/docs/dispatch/v2/data_model_guide.md#task-state-transitions.
     rpc GetFleetActiveTasks (GetFleetActiveTasksRequest) returns (GetFleetActiveTasksResponse);
 
+    // Get any metadata associated with a certain fleet.
     rpc GetFleetMetadata (GetFleetMetadataRequest) returns (GetFleetMetadataResponse);
+
+    // Set metadata to be associated with a fleet.
     rpc SetFleetMetadata (SetFleetMetadataRequest) returns (SetFleetMetadataResponse);
+
+    // Delete metadata associated with a fleet.
     rpc DeleteFleetMetadata (DeleteFleetMetadataRequest) returns (DeleteFleetMetadataResponse);
 
+    // Get the route that is stored for a given vehicle.
     rpc GetVehicleRoute (GetVehicleRouteRequest) returns (GetVehicleRouteResponse);
 
-    // Reoptimizes all plans in the specified fleet. Call this when, for example, blackout zones change.
+    // Reoptimizes all plans in the specified fleet.
+    //
+    // Call this method to force all plans and routes in the specified fleet to be recomputed. This method should be
+    // called when there are constraint changes that need to be taken into account (e.g. changes to avoid areas).
     rpc ReoptimizePlans (ReoptimizePlansRequest) returns (ReoptimizePlansResponse);
 }

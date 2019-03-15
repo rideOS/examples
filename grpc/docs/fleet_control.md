@@ -36,6 +36,8 @@ Further documentation
 More detailed documentation can be found for each API:
 
 * [dispatch.v2 documentation](dispatch/v2/index.md)
+* [Dispatch data model overview](dispatch/v2/data_model_guide.md)
+* [Dispatch API authorization models](dispatch/v2/authorization.md)
 
 Fleet Control vs Fleet Planner
 ------------------------------

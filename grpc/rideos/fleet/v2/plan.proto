@@ -43,6 +43,7 @@ message GetPlanRequest {
     bool allow_vehicle_reassignment = 5;
 
     OptimizationProfile optimize_for = 6;
+
 }
 
 message GetPlanResponse {
@@ -74,6 +75,7 @@ message Vehicle {
     VehiclePlan current_plan = 4;
 
     string vehicle_id = 5;
+
 }
 
 message VehiclePlanRecommendation {
@@ -115,6 +117,7 @@ message Task {
 
     // The dropoff step. Will always occur after the pickup step.
     DropoffStep dropoff_step = 3;
+
 
     message PickupStep {
         // The desired position at which the Step should occur.
