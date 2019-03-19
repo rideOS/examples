@@ -13,9 +13,9 @@ Fleet Control consists of the following components:
 Fleet Control currently offers two APIs:
 
 * `dispatch.v2` -- the `dispatch.v2` API provides core state management functionality.
-  Access invididual tasks and vehicles, or make queries across an entire fleet.
+  Access individual tasks and vehicles, or make queries across an entire fleet.
   Can be called through a backend-to-backend interaction, or directly by mobile apps.
-* `ride_hail.v1beta` -- the `ride_hail.v1beta` API provides convenince functionality for mobile apps that offer ride-hailing functionality.
+* `ride_hail.v1beta` -- the `ride_hail.v1beta` API provides convenience functionality for mobile apps that offer ride-hailing functionality.
 
 ### Dashboard
 
