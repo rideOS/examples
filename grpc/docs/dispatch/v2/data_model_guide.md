@@ -1,7 +1,7 @@
 ## Tasks and Steps
 
 A "task" represents one unit of work that can be assigned to a single Vehicle to complete.
-A task can be decomposed into an ordered list of "steps", which are invididual, atomic units of work that a vehicle can complete.
+A task can be decomposed into an ordered list of "steps", which are individual, atomic units of work that a vehicle can complete.
 
 Each task is assigned a unique task ID upon creation. The ID is generated internally by the Dispatch API and should be
 considered opaque.
