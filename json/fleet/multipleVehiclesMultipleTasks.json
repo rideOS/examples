@@ -35,8 +35,7 @@
                 "position": {
                     "latitude": 37.610817,
                     "longitude": -122.496223
-                },
-                "expected_duration": "15s"
+                }
             }
         },
         "aquarium->lafayette_park": {
@@ -51,8 +50,7 @@
                 "position": {
                     "latitude": 37.790850,
                     "longitude": -122.426732
-                },
-                "expected_duration": "15s"
+                }
             }
         },
         "japan_town->haight": {
@@ -67,8 +65,7 @@
                 "position": {
                     "latitude": 37.770039,
                     "longitude": -122.446951
-                },
-                "expected_duration": "15s"
+                }
             }
         },
         "alta_plaza->gg_park": {
@@ -83,8 +80,7 @@
                 "position": {
                     "latitude": 37.771494,
                     "longitude": -122.460167
-                },
-                "expected_duration": "15s"
+                }
             }
         }
     }

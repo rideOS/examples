@@ -21,8 +21,7 @@
                 "position": {
                     "latitude": 37.776138,
                     "longitude": -122.432897
-                },
-                "expected_duration": "15s"
+                }
             }
         },
         "aquarium->lafayette_park": {
@@ -37,8 +36,7 @@
                 "position": {
                     "latitude": 37.790850,
                     "longitude": -122.426732
-                },
-                "expected_duration": "15s"
+                }
             }
         },
         "japan_town->haight": {
@@ -53,8 +51,7 @@
                 "position": {
                     "latitude": 37.770039,
                     "longitude": -122.446951
-                },
-                "expected_duration": "15s"
+                }
             }
         }
     }

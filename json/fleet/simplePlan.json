@@ -21,8 +21,7 @@
                 "position": {
                     "latitude": 37.776138,
                     "longitude": -122.432897
-                },
-                "expected_duration": "15s"
+                }
             }
         }
     }
