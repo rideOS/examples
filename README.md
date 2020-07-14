@@ -9,4 +9,6 @@ We are leveraging Google colaborator to execute Jupyter notebooks, so that we ca
 
 #### Current Jupyter notebooks:
 - **ride_hai/ridehail.ipynb** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rideOS/examples/blob/master/ride_hail/ridehail.ipynb)
+- **fleet_planner/simple_request.ipynb** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rideOS/examples/blob/master/fleet_planner/simple_request.ipynb)
+- **fleet_planner/vehicle_filters.ipynb** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rideOS/examples/blob/master/fleet_planner/vehicle_filters.ipynb)
 - **scooters/run\_scooter_simulation.ipynb** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rideOS/examples/blob/master/scooters/run_scooter_simulation.ipynb)
